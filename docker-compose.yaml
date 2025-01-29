@@ -1,0 +1,44 @@
+services:
+  app-tron:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: bash -c 'while !</dev/tcp/db/5432; do sleep 1; done; uvicorn app-tron.main:app --host 0.0.0.0'
+    ports:
+      - "8001:8001"
+    networks:
+      app_net:
+        ipv4_address: 216.18.0.30
+    depends_on:
+      - db
+  db:
+    container_name: postgres-db
+    image: postgres:16.1-alpine3.18
+    command: "-c logging_collector=off"
+    logging:
+      driver: none
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres123}
+      POSTGRES_HOST_AUTH_METHOD: trust
+      PGDATA: /data/postgres
+    volumes:
+      - db:/data/postgres
+    ports:
+      - "15432:5432"
+    restart: unless-stopped
+    networks:
+      app_net:
+        ipv4_address: 216.21.0.54
+
+volumes:
+  db:
+    driver: local
+
+networks:
+  app_net:
+        driver: bridge
+        ipam:
+            driver: default
+            config:
+                - subnet: 216.18.0.0/16
