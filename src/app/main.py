@@ -1,10 +1,11 @@
-from fastapi import FastAPI
-import psycopg2
-import uvicorn
+from fastapi import FastAPI, HTTPException
 
 from .config import get_settings
+from di_container import get_uc
+from .models.dto import TronInfo
 
 cfg = get_settings()
+uc = get_uc()
 
 app = FastAPI(title=cfg.app_name,
               openapi_url="/tron/openapi.json",
@@ -13,7 +14,7 @@ app = FastAPI(title=cfg.app_name,
               )
 
 
-@app.get("/")
+@app.get("/requests")
 async def get_last_requests():
     # conn = psycopg2.connect(
     #     host=cfg.db_host,
@@ -31,6 +32,11 @@ async def get_last_requests():
     # conn.close()
     return {"message": "Hello World"}
 
-#
-# if __name__ == '__main__':
-#     uvicorn.run('main:app', host='localhost', port=800, reload=True)
+
+@app.post("/request")
+async def create_request(address: str) -> TronInfo:
+    try:
+        res = await uc.create_request(address)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return res
